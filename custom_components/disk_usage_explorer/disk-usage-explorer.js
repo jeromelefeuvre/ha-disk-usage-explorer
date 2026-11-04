@@ -1,6 +1,6 @@
 /* Disk Usage Explorer Lovelace card. */
 
-const CARD_VERSION = "0.3.0";
+const CARD_VERSION = "0.3.1";
 // Results older than this are flagged as possibly out of date.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const DOMAIN = "disk_usage_explorer";
@@ -56,6 +56,10 @@ const STRINGS = {
     editor_title: "Title",
     editor_path: "Default folder",
     editor_entity: "Status entity",
+    editor_title_help: "Leave empty to use “Disk usage”.",
+    editor_path_help: "Folder pre-filled in the path field, for example /media/movies. Leave empty to start with an empty field.",
+    editor_entity_help: "Leave empty to use sensor.disk_usage_explorer_status.",
+    invalid_option: (name) => `The “${name}” option must be text.`,
     card_description: "Scan a folder and explore what takes up disk space.",
   },
   fr: {
@@ -101,6 +105,10 @@ const STRINGS = {
     editor_title: "Titre",
     editor_path: "Dossier par défaut",
     editor_entity: "Entité d’état",
+    editor_title_help: "Laisser vide pour utiliser « Analyse du stockage ».",
+    editor_path_help: "Dossier prérempli dans le champ du chemin, par exemple /media/films. Laisser vide pour commencer avec un champ vide.",
+    editor_entity_help: "Laisser vide pour utiliser sensor.disk_usage_explorer_status.",
+    invalid_option: (name) => `L’option « ${name} » doit être du texte.`,
     card_description: "Analysez un dossier et explorez ce qui occupe l’espace disque.",
   },
 };
@@ -110,6 +118,10 @@ const pickLanguage = (language) => {
   return STRINGS[base] ? base : "en";
 };
 
+// Home Assistant writes its UI language on <html lang>; the editor callbacks get no hass.
+const uiStrings = () => STRINGS[pickLanguage(document.documentElement.lang || navigator.language)];
+const TEXT_OPTIONS = ["title", "path", "entity"];
+
 class DiskUsageExplorerCard extends HTMLElement {
   constructor() {
     super();
@@ -118,14 +130,14 @@ class DiskUsageExplorerCard extends HTMLElement {
     this._currentPath = "";
     this._requestKey = "";
     this._error = "";
-    this._pathValue = "/media";
+    this._pathValue = "";
   }
 
   static getStubConfig() {
-    return { path: "/media" };
+    return {};
   }
 
-  // Visual editor in the dashboard UI.
+  // Visual editor of the dashboard, rendered by Home Assistant from this schema.
   static getConfigForm() {
     return {
       schema: [
@@ -133,17 +145,30 @@ class DiskUsageExplorerCard extends HTMLElement {
         { name: "path", selector: { text: {} } },
         { name: "entity", selector: { entity: { integration: DOMAIN, domain: "sensor" } } },
       ],
-      computeLabel: (schema, localize, hass) => {
-        const t = STRINGS[pickLanguage(hass?.locale?.language || hass?.language)];
-        return t[`editor_${schema.name}`] || schema.name;
-      },
+      computeLabel: (schema) => uiStrings()[`editor_${schema.name}`] || schema.name,
+      computeHelper: (schema) => uiStrings()[`editor_${schema.name}_help`],
+      // Throwing here makes Home Assistant fall back to the YAML editor with this message.
+      assertConfig: (config) => DiskUsageExplorerCard._assertConfig(config),
     };
   }
 
+  static _assertConfig(config) {
+    for (const name of TEXT_OPTIONS) {
+      if (config?.[name] !== undefined && typeof config[name] !== "string") {
+        throw new Error(uiStrings().invalid_option(name));
+      }
+    }
+  }
+
   setConfig(config) {
+    DiskUsageExplorerCard._assertConfig(config);
+    const previousPath = this._config?.path;
     this._config = config || {};
     this._entity = this._config.entity || "sensor.disk_usage_explorer_status";
-    this._pathValue = this._config.path || "/media";
+    // Keep what the user typed, unless the configured folder itself changed (e.g. in the editor).
+    if (this._config.path !== previousPath) {
+      this._pathValue = (this._config.path || "").trim();
+    }
     this._render();
   }
 
@@ -200,7 +225,12 @@ class DiskUsageExplorerCard extends HTMLElement {
   async _startScan() {
     const input = this.shadowRoot.querySelector("#scan-path");
     const path = input?.value.trim();
-    if (!path) return;
+    if (!path) {
+      // Nothing to scan yet: help the user pick one of the allowed folders.
+      input?.focus();
+      this._suggestDirectories("");
+      return;
+    }
     this._pathValue = path;
     this._error = "";
     try {

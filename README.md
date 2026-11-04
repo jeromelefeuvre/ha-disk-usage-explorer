@@ -35,20 +35,20 @@ The paths are the ones Home Assistant sees. With Home Assistant Container, a fol
 
 ## Card
 
-The card is bundled with the integration and loaded automatically; there is no dashboard resource to add. Add it from the card picker (**Disk Usage Explorer**) or in YAML:
+The card is bundled with the integration and loaded automatically; there is no dashboard resource to add. Add it from the card picker (**Disk Usage Explorer**) and set its options in the visual editor, or in YAML:
 
 ```yaml
 type: custom:disk-usage-explorer
-path: /media
+path: /media/movies
 ```
 
-| Option   | Default                             | Description                          |
-| -------- | ----------------------------------- | ------------------------------------ |
-| `path`   | `/media`                            | Folder shown in the path field.      |
-| `title`  | Disk usage                          | Card title.                          |
-| `entity` | `sensor.disk_usage_explorer_status` | Status sensor of the integration.    |
+| Option   | Default                             | Description                                                      |
+| -------- | ----------------------------------- | ---------------------------------------------------------------- |
+| `path`   | empty                               | Folder pre-filled in the path field. Leave empty to type one.    |
+| `title`  | Disk usage                          | Card title.                                                      |
+| `entity` | `sensor.disk_usage_explorer_status` | Status sensor of the integration.                                |
 
-The path field suggests subfolders as you type. Use the arrow keys to pick one.
+The path field suggests the allowed folders and their subfolders as you type. Use the arrow keys to pick one.
 
 ## Actions and entity
 
