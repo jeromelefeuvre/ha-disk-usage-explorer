@@ -1,0 +1,110 @@
+{
+  "title": "Disk Usage Explorer",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Disk Usage Explorer",
+        "description": "Choisissez les dossiers que la carte peut analyser.",
+        "data": {
+          "allowed_roots": "Dossiers autorisés"
+        },
+        "data_description": {
+          "allowed_roots": "Un chemin absolu par ligne, tel que vu par Home Assistant (par exemple /media). Seuls ces dossiers et leurs sous-dossiers peuvent être analysés."
+        }
+      }
+    },
+    "error": {
+      "invalid_roots": "Saisissez un ou plusieurs dossiers absolus existants."
+    },
+    "abort": {
+      "single_instance_allowed": "Disk Usage Explorer est déjà configuré."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "idle": "Inactif",
+          "scanning": "Analyse en cours",
+          "completed": "Terminé",
+          "cancelled": "Annulé",
+          "error": "Erreur"
+        }
+      }
+    }
+  },
+  "services": {
+    "scan": {
+      "name": "Analyser un dossier",
+      "description": "Indexe un dossier en lecture seule. Rien n’est modifié ni supprimé.",
+      "fields": {
+        "path": {
+          "name": "Chemin",
+          "description": "Chemin absolu d’un dossier situé dans l’un des dossiers autorisés."
+        }
+      }
+    },
+    "cancel": {
+      "name": "Annuler l’analyse",
+      "description": "Arrête l’analyse en cours. Les résultats partiels sont abandonnés."
+    },
+    "browse": {
+      "name": "Parcourir les résultats",
+      "description": "Renvoie le contenu d’un dossier de la dernière analyse terminée.",
+      "fields": {
+        "path": {
+          "name": "Chemin relatif",
+          "description": "Chemin du dossier relatif au dossier analysé. Laisser vide pour le dossier analysé lui-même."
+        }
+      }
+    },
+    "suggest_directories": {
+      "name": "Suggérer des dossiers",
+      "description": "Renvoie les sous-dossiers existants qui correspondent au chemin saisi, dans les dossiers autorisés.",
+      "fields": {
+        "path": {
+          "name": "Chemin partiel",
+          "description": "Chemin absolu ou son début."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Ajoutez l’intégration Disk Usage Explorer avant d’utiliser cette action."
+    },
+    "path_required": {
+      "message": "Saisissez un chemin absolu valide."
+    },
+    "path_not_absolute": {
+      "message": "Le chemin doit être absolu, par exemple /media/films."
+    },
+    "path_unreachable": {
+      "message": "Impossible d’accéder à {path}."
+    },
+    "path_not_directory": {
+      "message": "{path} n’est pas un dossier."
+    },
+    "path_outside_roots": {
+      "message": "{path} est hors des dossiers autorisés ({roots})."
+    },
+    "scan_in_progress": {
+      "message": "Une analyse est déjà en cours."
+    },
+    "no_scan_running": {
+      "message": "Aucune analyse en cours."
+    },
+    "directory_unreadable": {
+      "message": "Impossible de lire le dossier {path}."
+    },
+    "no_results": {
+      "message": "Aucune analyse terminée n’est disponible."
+    },
+    "relative_path_invalid": {
+      "message": "Chemin relatif invalide."
+    },
+    "not_in_results": {
+      "message": "Le dossier {path} ne fait pas partie de la dernière analyse."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "domain": "disk_usage_explorer",
+  "name": "Disk Usage Explorer",
+  "codeowners": ["@jeromelefeuvre"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/jeromelefeuvre/ha-disk-usage-explorer",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/jeromelefeuvre/ha-disk-usage-explorer/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.3.0"
+}

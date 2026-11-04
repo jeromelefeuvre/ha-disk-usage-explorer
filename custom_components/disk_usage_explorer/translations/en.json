@@ -1,0 +1,110 @@
+{
+  "title": "Disk Usage Explorer",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Disk Usage Explorer",
+        "description": "Choose the folders the card is allowed to scan.",
+        "data": {
+          "allowed_roots": "Allowed folders"
+        },
+        "data_description": {
+          "allowed_roots": "One absolute path per line, as seen by Home Assistant (for example /media). Only these folders and their subfolders can be scanned."
+        }
+      }
+    },
+    "error": {
+      "invalid_roots": "Enter one or more existing absolute folders."
+    },
+    "abort": {
+      "single_instance_allowed": "Disk Usage Explorer is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "idle": "Idle",
+          "scanning": "Scanning",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "error": "Error"
+        }
+      }
+    }
+  },
+  "services": {
+    "scan": {
+      "name": "Scan a folder",
+      "description": "Index a folder in read-only mode. Nothing is modified or deleted.",
+      "fields": {
+        "path": {
+          "name": "Path",
+          "description": "Absolute folder path inside one of the allowed folders."
+        }
+      }
+    },
+    "cancel": {
+      "name": "Cancel scan",
+      "description": "Stop the running scan. Partial results are discarded."
+    },
+    "browse": {
+      "name": "Browse scan results",
+      "description": "Return the contents of a folder from the latest completed scan.",
+      "fields": {
+        "path": {
+          "name": "Relative path",
+          "description": "Folder path relative to the scanned folder. Leave empty for the scanned folder itself."
+        }
+      }
+    },
+    "suggest_directories": {
+      "name": "Suggest folders",
+      "description": "Return existing subfolders matching a typed path, inside the allowed folders.",
+      "fields": {
+        "path": {
+          "name": "Partial path",
+          "description": "Absolute path or the beginning of one."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_configured": {
+      "message": "Add the Disk Usage Explorer integration before using this action."
+    },
+    "path_required": {
+      "message": "Enter a valid absolute path."
+    },
+    "path_not_absolute": {
+      "message": "The path must be absolute, for example /media/movies."
+    },
+    "path_unreachable": {
+      "message": "Cannot access {path}."
+    },
+    "path_not_directory": {
+      "message": "{path} is not a folder."
+    },
+    "path_outside_roots": {
+      "message": "{path} is outside the allowed folders ({roots})."
+    },
+    "scan_in_progress": {
+      "message": "A scan is already running."
+    },
+    "no_scan_running": {
+      "message": "No scan is running."
+    },
+    "directory_unreadable": {
+      "message": "Cannot read the folder {path}."
+    },
+    "no_results": {
+      "message": "No completed scan is available."
+    },
+    "relative_path_invalid": {
+      "message": "Invalid relative path."
+    },
+    "not_in_results": {
+      "message": "The folder {path} is not part of the latest scan."
+    }
+  }
+}

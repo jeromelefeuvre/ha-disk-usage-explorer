@@ -1,0 +1,21 @@
+scan:
+  fields:
+    path:
+      required: true
+      example: /media/movies
+      selector:
+        text:
+cancel:
+browse:
+  fields:
+    path:
+      required: false
+      selector:
+        text:
+suggest_directories:
+  fields:
+    path:
+      required: false
+      example: /media/
+      selector:
+        text:
