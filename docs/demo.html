@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  Demo page used for docs/screenshot.png, with fictional data. Regenerate from the repository root:
+  docker run --rm -e TZ=America/Toronto -v "$PWD":/work zenika/alpine-chrome --no-sandbox --hide-scrollbars \
+    --force-device-scale-factor=2 --window-size=608,922 --virtual-time-budget=5000 \
+    --screenshot=/work/docs/screenshot.png file:///work/docs/demo.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Home Assistant default dark theme variables used by the card. */
+  :root {
+    --primary-color: #03a9f4; --text-primary-color: #fff;
+    --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b;
+    --primary-background-color: #111111; --secondary-background-color: #282828;
+    --card-background-color: #1c1c1c; --divider-color: rgba(225,225,225,.12);
+    --error-color: #db4437; --warning-color: #ffa600;
+  }
+  html, body { margin:0; background:#111111; font-family:Roboto, "Noto Sans", sans-serif; -webkit-font-smoothing:antialiased; }
+  body { padding:24px; width:560px; }
+</style>
+<script>
+  // Stand-ins for the Home Assistant elements the card uses.
+  customElements.define("ha-card", class extends HTMLElement {
+    connectedCallback() { Object.assign(this.style, { display:"block", background:"var(--card-background-color)", borderRadius:"12px", border:"1px solid var(--divider-color)" }); }
+  });
+  customElements.define("ha-icon", class extends HTMLElement {
+    connectedCallback() {
+      this.style.display = "inline-flex";
+      this.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M13,2.05V5.08C16.39,5.57 19,8.47 19,12C19,12.9 18.82,13.75 18.5,14.54L21.12,16.07C21.68,14.83 22,13.45 22,12C22,6.82 18.05,2.55 13,2.05M12,19A7,7 0 0,1 5,12C5,8.47 7.61,5.57 11,5.08V2.05C5.94,2.55 2,6.81 2,12A10,10 0 0,0 12,22C15.3,22 18.23,20.39 20.03,17.91L17.43,16.38C16.15,18 14.2,19 12,19Z"/></svg>';
+    }
+  });
+</script>
+<script src="../custom_components/disk_usage_explorer/disk-usage-explorer.js"></script>
+</head>
+<body>
+<script>
+  // Fictional media library.
+  const GB = 1024 ** 3, MB = 1024 ** 2;
+  const dir = (name, gb) => ({ name, path: name, kind: "directory", size: Math.round(gb * GB) });
+  const items = [
+    dir("Movies", 1452), dir("TV Shows", 978), dir("Music", 214), dir("Photos", 186),
+    dir("Home Videos", 142), dir("Audiobooks", 61), dir("Backups", 48), dir("Podcasts", 22),
+    dir("Courses", 17), dir("Documents", 9), dir("E-books", 4.2), dir("Wallpapers", 1.6),
+    dir("Scans", 0.9), dir("Fonts", 0.3),
+    { name: "library-index.db", path: "library-index.db", kind: "file", size: 212 * MB },
+  ];
+  const file = (path, gb) => ({ name: path.split("/").pop(), path, kind: "file", size: Math.round(gb * GB) });
+  const largest = [
+    file("Backups/laptop-2025-12-31.img", 31.4),
+    file("Home Videos/2024/Iceland road trip.mov", 18.7),
+    file("Movies/The Quiet Harbor (2022)/The Quiet Harbor (2022).mkv", 14.2),
+    file("Movies/Northern Lights (2019)/Northern Lights (2019).mkv", 12.9),
+    file("Home Videos/2023/Wedding.mov", 11.6),
+    file("Movies/Paper Planes (2021)/Paper Planes (2021).mkv", 9.8),
+  ];
+  const total = items.reduce((sum, item) => sum + item.size, 0);
+  const attrs = {
+    path: "/media/library", scan_id: "demo", finished_at: new Date(Date.now() - 12 * 60000).toISOString(),
+    items_scanned: 48213, total_bytes: total, file_count: 45102, directory_count: 3111,
+    warning_count: 0, hardlinks_deduplicated: 0, symlinks_skipped: 0, truncated: false, max_items: 100000,
+  };
+  const hass = {
+    language: "en", locale: { language: "en" },
+    states: { "sensor.disk_usage_explorer_status": { state: "completed", attributes: attrs } },
+    callService: async (domain, service) => ({ response: service === "browse"
+      ? { path: "", items, largest_files: largest, total_bytes: total, file_count: 1, directory_count: 14 }
+      : { paths: [] } }),
+  };
+  const card = document.createElement("disk-usage-explorer");
+  card._largestOpen = true;
+  card.setConfig({ path: "/media/library" });
+  document.body.appendChild(card);
+  card.hass = hass;
+</script>
+</body>
+</html>

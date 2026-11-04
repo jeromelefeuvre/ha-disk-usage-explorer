@@ -4,6 +4,8 @@
 
 A Home Assistant integration and dashboard card that scan a folder and show what takes up the space, as an interactive donut chart.
 
+<img src="https://raw.githubusercontent.com/jeromelefeuvre/ha-disk-usage-explorer/main/docs/screenshot.png" alt="Disk Usage Explorer card showing a donut chart of a media library and its largest files" width="480">
+
 - Pick a folder such as `/media/movies` and start a scan from the dashboard.
 - Click a slice of the donut, or a row in the list, to open that folder. Breadcrumbs take you back up.
 - See the largest files of the folder you are looking at, subfolders included.
