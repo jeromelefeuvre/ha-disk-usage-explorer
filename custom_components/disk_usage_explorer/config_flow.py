@@ -12,7 +12,7 @@ from homeassistant.helpers import selector
 from .const import DOMAIN
 
 CONF_ALLOWED_ROOTS = "allowed_roots"
-DEFAULT_ALLOWED_ROOTS = "/media\n/config"
+DEFAULT_ALLOWED_ROOTS = "/media"
 
 
 class DiskUsageExplorerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

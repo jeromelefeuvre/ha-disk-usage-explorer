@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service import async_register_admin_service
 
 from .const import (
     CARD_URL,
@@ -62,21 +63,25 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         """Suggest existing child directories below configured roots."""
         return await _get_scanner(hass).async_suggest_directories(call.data.get("path", ""))
 
-    hass.services.async_register(
+    # Admin only: these actions reveal the folder tree below the allowed folders.
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_SCAN,
         scan,
         schema=vol.Schema({vol.Required("path"): cv.string}),
     )
-    hass.services.async_register(DOMAIN, SERVICE_CANCEL, cancel, schema=vol.Schema({}))
-    hass.services.async_register(
+    async_register_admin_service(hass, DOMAIN, SERVICE_CANCEL, cancel, schema=vol.Schema({}))
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_BROWSE,
         browse,
         schema=vol.Schema({vol.Optional("path", default=""): cv.string}),
         supports_response=SupportsResponse.ONLY,
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_SUGGEST,
         suggest_directories,

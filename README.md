@@ -31,7 +31,9 @@ Copy `custom_components/disk_usage_explorer` into the `custom_components` folder
 
 ## Configuration
 
-When you add the integration, list the folders it may scan, one absolute path per line. The default is `/media` and `/config`. Only these folders and their subfolders can be scanned; the check is done on the server, after resolving the path, so `..` and symbolic links cannot escape them.
+When you add the integration, list the folders it may scan, one absolute path per line. The default is `/media`. Only these folders and their subfolders can be scanned; the check is done on the server, after resolving the path, so `..` and symbolic links cannot escape them.
+
+Scan results show the names and sizes of every file below the allowed folders. Think twice before allowing `/config`: it holds `secrets.yaml`, `.storage` and backups.
 
 The paths are the ones Home Assistant sees. With Home Assistant Container, a folder of the host must be mounted in the container (for example `- /mnt/storage:/media`) before it can be scanned.
 
@@ -52,7 +54,11 @@ path: /media/movies
 
 The path field suggests the allowed folders and their subfolders as you type. Use the arrow keys to pick one.
 
+Only administrators can use the card. Other users see a message instead of the path field.
+
 ## Actions and entity
+
+All actions require an administrator when a user calls them. Automations, which run without a user, can still call them.
 
 | Action                                    | Description                                                                 |
 | ----------------------------------------- | --------------------------------------------------------------------------- |

@@ -1,6 +1,6 @@
 /* Disk Usage Explorer Lovelace card. */
 
-const CARD_VERSION = "0.3.1";
+const CARD_VERSION = "0.3.2";
 // Results older than this are flagged as possibly out of date.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const DOMAIN = "disk_usage_explorer";
@@ -20,6 +20,7 @@ const STRINGS = {
     scan: "Scan",
     cancel: "Cancel",
     not_ready: "The integration is not ready. Add Disk Usage Explorer in <b>Settings → Devices & services</b>.",
+    admin_only: "Only administrators can scan and browse folders.",
     scanning: "Scanning",
     items_scanned: (n) => `${n} items scanned`,
     cancelled: "Scan cancelled. Start it again to see the results.",
@@ -69,6 +70,7 @@ const STRINGS = {
     scan: "Analyser",
     cancel: "Annuler",
     not_ready: "L’intégration n’est pas prête. Ajoutez Disk Usage Explorer dans <b>Paramètres → Appareils et services</b>.",
+    admin_only: "Seuls les administrateurs peuvent analyser et parcourir les dossiers.",
     scanning: "Analyse en cours",
     items_scanned: (n) => `${n} éléments parcourus`,
     cancelled: "Analyse annulée. Relancez-la pour afficher les résultats.",
@@ -186,10 +188,23 @@ class DiskUsageExplorerCard extends HTMLElement {
     return Number(value || 0).toLocaleString(this._locale, options);
   }
 
+  // The integration's actions are admin only; unknown users are treated as admins and the server decides.
+  get _isAdmin() {
+    return this._hass?.user?.is_admin !== false;
+  }
+
   set hass(hass) {
     const languageChanged = this._hass && (this._hass.locale?.language || this._hass.language) !== (hass.locale?.language || hass.language);
     this._hass = hass;
     if (languageChanged) this._lastRenderedKey = null;
+    if (!this._isAdmin) {
+      // Nothing to load: the actions would be refused.
+      if (this._lastRenderedKey !== "not-admin") {
+        this._lastRenderedKey = "not-admin";
+        this._render();
+      }
+      return;
+    }
     const state = hass.states[this._entity];
     if (!state) {
       // Only re-render when the entity disappears, not on every unrelated hass update.
@@ -365,7 +380,9 @@ class DiskUsageExplorerCard extends HTMLElement {
     const heading = this._config.title || this._t("title");
     let content = "";
 
-    if (!state) {
+    if (!this._isAdmin) {
+      content = `<div class="notice">${this._t("admin_only")}</div>`;
+    } else if (!state) {
       content = `<div class="notice">${this._t("not_ready")}</div>`;
     } else if (status === "scanning") {
       content = `<div class="scan-state"><span class="spinner"></span><div><strong>${this._t("scanning")}</strong><div class="progress">${this._t("items_scanned", this._number(attrs.items_scanned))}</div></div><button class="secondary" id="cancel">${this._t("cancel")}</button></div>`;
@@ -442,7 +459,7 @@ class DiskUsageExplorerCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="head"><ha-icon icon="mdi:chart-donut"></ha-icon><h2>${this._escape(heading)}</h2></div>
-        <div class="form"><div class="path-wrap"><input id="scan-path" role="combobox" aria-autocomplete="list" aria-controls="path-suggestions" aria-expanded="false" autocomplete="off" aria-label="${this._escapeAttr(this._t("path_label"))}" value="${this._escapeAttr(this._pathValue)}" placeholder="${this._escapeAttr(this._t("path_placeholder"))}"><div id="path-suggestions" class="suggestions" role="listbox" hidden></div></div><button class="primary" id="scan" ${status === "scanning" ? "disabled" : ""}>${this._t("scan")}</button></div>
+        ${this._isAdmin ? `<div class="form"><div class="path-wrap"><input id="scan-path" role="combobox" aria-autocomplete="list" aria-controls="path-suggestions" aria-expanded="false" autocomplete="off" aria-label="${this._escapeAttr(this._t("path_label"))}" value="${this._escapeAttr(this._pathValue)}" placeholder="${this._escapeAttr(this._t("path_placeholder"))}"><div id="path-suggestions" class="suggestions" role="listbox" hidden></div></div><button class="primary" id="scan" ${status === "scanning" ? "disabled" : ""}>${this._t("scan")}</button></div>` : ""}
         ${error}${content}
       </ha-card>`;
     this.shadowRoot.querySelector("#scan")?.addEventListener("click", () => this._startScan());
