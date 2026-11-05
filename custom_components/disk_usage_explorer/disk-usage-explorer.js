@@ -1,6 +1,6 @@
 /* Disk Usage Explorer Lovelace card. */
 
-const CARD_VERSION = "0.3.2";
+const CARD_VERSION = "0.3.3";
 // Results older than this are flagged as possibly out of date.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const DOMAIN = "disk_usage_explorer";
@@ -215,7 +215,7 @@ class DiskUsageExplorerCard extends HTMLElement {
       return;
     }
     const attrs = state.attributes || {};
-    const key = `${state.state}|${attrs.scan_id || ""}|${attrs.path || ""}`;
+    const key = `${state.state}|${attrs.scan_id || ""}`;
     if (state.state === "scanning" && attrs.scan_id !== this._activeScanId) {
       this._activeScanId = attrs.scan_id;
       this._directory = null;
@@ -535,7 +535,7 @@ class DiskUsageExplorerCard extends HTMLElement {
     const directory = this._directory;
     const items = directory.items || [];
     const parts = this._currentPath ? this._currentPath.split("/") : [];
-    const crumbs = [`<button class="crumb ${parts.length ? "" : "current"}" data-path="">${this._escape(attrs.path || this._t("root"))}</button>`];
+    const crumbs = [`<button class="crumb ${parts.length ? "" : "current"}" data-path="">${this._escape(directory.scan_path || this._t("root"))}</button>`];
     let partial = "";
     parts.forEach((part, index) => {
       partial = partial ? `${partial}/${part}` : part;
@@ -562,7 +562,7 @@ class DiskUsageExplorerCard extends HTMLElement {
       attrs.symlinks_skipped ? this._t("symlinks_skipped", attrs.symlinks_skipped) : "",
     ].filter(Boolean).join(" · ");
     const warnings = warningText ? `<div class="warnings">${this._escape(warningText)}.</div>` : "";
-    const largest = this._renderLargest(directory.largest_files || [], attrs);
+    const largest = this._renderLargest(directory.largest_files || [], directory);
     const finished = attrs.finished_at ? new Date(attrs.finished_at) : null;
     const isStale = finished && Date.now() - finished.getTime() > STALE_AFTER_MS;
     const dateText = finished
@@ -572,12 +572,12 @@ class DiskUsageExplorerCard extends HTMLElement {
     return `<div class="summary"><div><div class="total">${this._formatSize(directory.total_bytes)}</div><div class="small">${this._t("in_folder")}</div>${dateLine}</div><div class="counts">${this._t("files", directory.file_count || 0)}<br>${this._t("folders", directory.directory_count || 0)}</div></div><nav class="crumbs">${crumbs.join("")}</nav><div class="viz"><div class="chart-wrap">${svg}<div class="tip" role="tooltip" hidden></div></div><div class="legend">${rows || `<div class="small">${this._t("no_items")}</div>`}${more}${chartLimit}</div></div>${largest}${warnings}`;
   }
 
-  _renderLargest(files, attrs) {
+  _renderLargest(files, directory) {
     if (!files.length) return "";
     const rows = files.map((file) => {
       const parent = file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "";
       const hardlink = file.hardlink ? ` <span class="tag">${this._t("hardlink")}</span>` : "";
-      return `<button class="item big-file" data-path="${this._escapeAttr(parent)}" title="${this._escapeAttr(this._t("open_folder", parent || attrs.path || this._t("root")))}"><span class="item-name">${this._escape(file.name)}${hardlink}<span class="file-dir">${this._escape(parent ? `${parent}/` : "./")}</span></span><span class="item-size">${this._formatSize(file.size)}</span></button>`;
+      return `<button class="item big-file" data-path="${this._escapeAttr(parent)}" title="${this._escapeAttr(this._t("open_folder", parent || directory.scan_path || this._t("root")))}"><span class="item-name">${this._escape(file.name)}${hardlink}<span class="file-dir">${this._escape(parent ? `${parent}/` : "./")}</span></span><span class="item-size">${this._formatSize(file.size)}</span></button>`;
     }).join("");
     return `<details class="largest" ${this._largestOpen ? "open" : ""}><summary>${this._t("largest")} <span class="tag">${this._t("subfolders_included")}</span></summary>${rows}</details>`;
   }

@@ -39,7 +39,6 @@ class DiskUsageStatusSensor(SensorEntity):
             "items_scanned",
             "started_at",
             "finished_at",
-            "warnings",
             "warning_count",
             "symlinks_skipped",
             "hardlinks_deduplicated",

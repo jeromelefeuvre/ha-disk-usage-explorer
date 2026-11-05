@@ -11,6 +11,8 @@ import os
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -65,6 +67,15 @@ def _failed(key: str, **placeholders: str) -> HomeAssistantError:
     )
 
 
+@contextmanager
+def closing_fd(fd: int) -> Iterator[int]:
+    """Close a raw file descriptor when the block ends, even on error or cancel."""
+    try:
+        yield fd
+    finally:
+        os.close(fd)
+
+
 class ScanCancelled(Exception):
     """Raised inside the worker thread when a scan is stopped."""
 
@@ -98,9 +109,12 @@ class DiskScanner:
 
     @property
     def attributes(self) -> dict[str, Any]:
-        """Return compact status attributes for the status entity."""
+        """Return compact status attributes for the status entity.
+
+        Every user can read entity states, admin or not: nothing here may name a
+        file or folder. Paths and warnings are returned by the admin-only browse.
+        """
         return {
-            "path": self.path,
             "scan_id": self.scan_id,
             "items_scanned": self.items_scanned,
             "total_bytes": self.total_bytes,
@@ -109,7 +123,6 @@ class DiskScanner:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "error": self.error,
-            "warnings": self.errors[:20],
             "warning_count": self.warning_count,
             "symlinks_skipped": self.symlinks_skipped,
             "hardlinks_deduplicated": self.hardlinks_deduplicated,
@@ -201,7 +214,9 @@ class DiskScanner:
             self.status = "cancelled"
         except Exception as err:  # Filesystem errors are reflected in the entity.
             self.status = "error"
-            self.error = str(err)
+            # The full message may contain paths: log it, expose only the cause.
+            _LOGGER.error("Scan of %s failed: %s", root, err)
+            self.error = err.strerror if isinstance(err, OSError) and err.strerror else type(err).__name__
         else:
             self._tree = result["tree"]
             self.total_bytes = result["total_bytes"]
@@ -277,7 +292,12 @@ class DiskScanner:
         """Walk the directory tree, skipping symlinks and recording partial errors."""
         tree: dict[str, list[dict[str, Any]]] = {"": []}
         directories = [""]
-        stack: list[tuple[Path, str]] = [(root, "")]
+        # Each directory carries the (st_dev, st_ino) seen when it was listed, so a
+        # directory replaced by a symlink (or moved) before it is visited is skipped.
+        root_stat = os.stat(root, follow_symlinks=False)
+        stack: list[tuple[Path, str, tuple[int, int]]] = [
+            (root, "", (root_stat.st_dev, root_stat.st_ino))
+        ]
         errors: list[str] = []
         warning_count = 0
         scanned = files = directory_count = symlinks_skipped = hardlinks = 0
@@ -294,17 +314,35 @@ class DiskScanner:
         while stack and not truncated:
             if stop_event.is_set():
                 raise ScanCancelled
-            directory, relative_dir = stack.pop()
+            directory, relative_dir, identity = stack.pop()
             try:
-                entries = os.scandir(directory)
+                # O_NOFOLLOW refuses a symlink as last component; the identity check
+                # catches a symlink swapped in higher up the path.
+                fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
             except OSError as err:
                 warning_count += 1
                 if len(errors) < 20:
-                    errors.append(f"{relative_dir or '/'}: {err}")
+                    errors.append(f"{relative_dir or '/'}: {err.strerror or err}")
+                continue
+            try:
+                opened = os.fstat(fd)
+                if (opened.st_dev, opened.st_ino) != identity:
+                    warning_count += 1
+                    if len(errors) < 20:
+                        errors.append(f"{relative_dir or '/'}: changed during the scan, skipped")
+                    os.close(fd)
+                    continue
+                entries = os.scandir(fd)
+            except OSError as err:
+                os.close(fd)
+                warning_count += 1
+                if len(errors) < 20:
+                    errors.append(f"{relative_dir or '/'}: {err.strerror or err}")
                 continue
 
             children = tree.setdefault(relative_dir, [])
-            with entries:
+            # Entries stat() relative to fd: it must stay open until the listing is done.
+            with closing_fd(fd), entries:
                 for entry in entries:
                     if stop_event.is_set():
                         raise ScanCancelled
@@ -319,12 +357,16 @@ class DiskScanner:
                             symlinks_skipped += 1
                             continue
                         if entry.is_dir(follow_symlinks=False):
+                            listed = entry.stat(follow_symlinks=False)
                             children.append(
                                 {"name": entry.name, "path": relative, "kind": "directory", "size": 0}
                             )
                             tree[relative] = []
                             directories.append(relative)
-                            stack.append((Path(entry.path), relative))
+                            # Entries of an fd-based scandir carry only their name.
+                            stack.append(
+                                (directory / entry.name, relative, (listed.st_dev, listed.st_ino))
+                            )
                             directory_count += 1
                         elif entry.is_file(follow_symlinks=False):
                             stat = entry.stat(follow_symlinks=False)
@@ -344,7 +386,7 @@ class DiskScanner:
                     except OSError as err:
                         warning_count += 1
                         if len(errors) < 20:
-                            errors.append(f"{relative}: {err}")
+                            errors.append(f"{relative}: {err.strerror or err}")
                     now = time.monotonic()
                     if now - last_report >= PROGRESS_INTERVAL:
                         last_report = now
@@ -475,6 +517,8 @@ class DiskScanner:
         items = self._tree[key]
         return {
             "path": key,
+            "scan_path": self.path,
+            "warnings": self.errors[:20],
             "items": items,
             "largest_files": self._largest_files(key),
             "total_bytes": sum(item["size"] for item in items),

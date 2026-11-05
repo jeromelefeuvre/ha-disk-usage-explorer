@@ -67,7 +67,7 @@ All actions require an administrator when a user calls them. Automations, which 
 | `disk_usage_explorer.browse`              | Return the contents of a folder of the latest scan, and its largest files.  |
 | `disk_usage_explorer.suggest_directories` | Return subfolders matching a typed path.                                    |
 
-`sensor.disk_usage_explorer_status` reports `idle`, `scanning`, `completed`, `cancelled` or `error`, with the scanned path, item count, total size, dates and warnings as attributes.
+`sensor.disk_usage_explorer_status` reports `idle`, `scanning`, `completed`, `cancelled` or `error`, with the item count, total size, dates and warning count as attributes. Every user can read entity states, so the sensor never names a file or folder: the scanned path and the warnings are returned by `disk_usage_explorer.browse`, which requires an administrator.
 
 ## How sizes are counted
 
