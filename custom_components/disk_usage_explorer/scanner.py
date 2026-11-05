@@ -85,7 +85,9 @@ class DiskScanner:
 
     def __init__(self, hass: HomeAssistant, roots: list[str]) -> None:
         self.hass = hass
-        self.roots = [Path(root).resolve() for root in roots]
+        # Roots are resolved and validated by the config flow, in the executor.
+        # Resolving here would touch the filesystem on the event loop.
+        self.roots = [Path(root) for root in roots]
         self.status = "idle"
         self.path: str | None = None
         self.scan_id: str | None = None

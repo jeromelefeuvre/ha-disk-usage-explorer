@@ -1,6 +1,6 @@
 /* Disk Usage Explorer Lovelace card. */
 
-const CARD_VERSION = "0.3.3";
+const CARD_VERSION = "0.3.4";
 // Results older than this are flagged as possibly out of date.
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const DOMAIN = "disk_usage_explorer";
